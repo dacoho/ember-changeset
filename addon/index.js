@@ -429,19 +429,19 @@ export function changeset(obj, validateFn = defaultValidatorFn, validationMap = 
       let content = get(this, CONTENT);
       let oldValue = get(content, key);
       let validation = this._validate(key, value, oldValue);
-
+      this.trigger(BEFORE_VALIDATION_EVENT, key);
       if (isPromise(validation)) {
         this._setIsValidating(key, true);
-        this.trigger(BEFORE_VALIDATION_EVENT, key);
+        //this.trigger(BEFORE_VALIDATION_EVENT, key);
         return validation.then((resolvedValidation) => {
           this._setIsValidating(key, false);
-          this.trigger(AFTER_VALIDATION_EVENT, key);
+          //this.trigger(AFTER_VALIDATION_EVENT, key);
           return this._setProperty(resolvedValidation, { key, value, oldValue });
         });
       }
 
-      this.trigger(BEFORE_VALIDATION_EVENT, key);
-      this.trigger(AFTER_VALIDATION_EVENT, key);
+      //this.trigger(BEFORE_VALIDATION_EVENT, key);
+      //this.trigger(AFTER_VALIDATION_EVENT, key);
       return this._setProperty(validation, { key, value, oldValue });
     },
 
@@ -506,11 +506,13 @@ export function changeset(obj, validateFn = defaultValidatorFn, validationMap = 
           delete errors['__ember_meta__']['values'][key];
           set(this, ERRORS, errors);
         }
-
+        this.trigger(AFTER_VALIDATION_EVENT, key);
         return value;
       }
 
-      return this.addError(key, { value, validation });
+      let error = this.addError(key, { value, validation });
+      this.trigger(AFTER_VALIDATION_EVENT, key);
+      return error;
     },
 
     /**
