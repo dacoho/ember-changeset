@@ -274,26 +274,22 @@ export function changeset(obj, validateFn = defaultValidatorFn, validationMap = 
      * @param  {String|Undefined} key
      * @return {Promise}
      */
-    validate(key, validator) {
-      
+    validate(key, _validator, silent) {
+
       if (keys(validationMap).length === 0) {
         return resolve(null);
       }
 
-      //if (validator) {
-      //  set(this, VALIDATOR, validator);
-      //}
-
       if (isNone(key)) {
         let maybePromise = keys(validationMap)
           .map((validationKey) => {
-            return this._validateAndSet(validationKey, this._valueFor(validationKey), validator);
+            return this._validateAndSet(validationKey, this._valueFor(validationKey), _validator, silent);
           });
 
         return all(maybePromise);
       }
 
-      return resolve(this._validateAndSet(key, this._valueFor(key)), validator);
+      return resolve(this._validateAndSet(key, this._valueFor(key), _validator, silent));
     },
 
     
@@ -430,26 +426,25 @@ export function changeset(obj, validateFn = defaultValidatorFn, validationMap = 
      * @param  {Any} value
      * @return {Any}
      */
-    _validateAndSet(key, value, validator) {
+    _validateAndSet(key, value, _validator, silent) {
       let content = get(this, CONTENT);
       let oldValue = get(content, key);
-      this.trigger(BEFORE_VALIDATION_EVENT, key);
+      if (!silent) {
+        this.trigger(BEFORE_VALIDATION_EVENT, key);
+      }
       
-      let validation = this._validate(key, value, oldValue, validator);
+      let validation = this._validate(key, value, oldValue, _validator);
       
       if (isPromise(validation)) {
         this._setIsValidating(key, true);
-        //this.trigger(BEFORE_VALIDATION_EVENT, key);
         return validation.then((resolvedValidation) => {
+          let setProperty = this._setProperty(resolvedValidation, { key, value, oldValue }, silent);
           this._setIsValidating(key, false);
-          //this.trigger(AFTER_VALIDATION_EVENT, key);
-          return this._setProperty(resolvedValidation, { key, value, oldValue });
+          return setProperty;
         });
       }
 
-      //this.trigger(BEFORE_VALIDATION_EVENT, key);
-      //this.trigger(AFTER_VALIDATION_EVENT, key);
-      return this._setProperty(validation, { key, value, oldValue });
+      return this._setProperty(validation, { key, value, oldValue }, silent);
     },
 
     /**
@@ -463,7 +458,7 @@ export function changeset(obj, validateFn = defaultValidatorFn, validationMap = 
      */
     _validate(key, newValue, oldValue, _validator) {
       let changes = get(this, CHANGES);
-      let validator = typeof _validator === "function"? _validator : get(this, VALIDATOR);
+      let validator = typeof _validator === 'function'? _validator : get(this, VALIDATOR);
       let content = get(this, CONTENT);
 
       if (typeOf(validator) === 'function') {
@@ -490,7 +485,7 @@ export function changeset(obj, validateFn = defaultValidatorFn, validationMap = 
      * @param {Any} options.value
      * @return {Any}
      */
-    _setProperty(validation, { key, value, oldValue } = {}) {
+    _setProperty(validation, { key, value, oldValue } = {}, silent) {
       let changes = get(this, CHANGES);
       let isSingleValidationArray =
         isArray(validation) &&
@@ -513,7 +508,11 @@ export function changeset(obj, validateFn = defaultValidatorFn, validationMap = 
           delete errors['__ember_meta__']['values'][key];
           set(this, ERRORS, errors);
         }
-        this.trigger(AFTER_VALIDATION_EVENT, key);
+        
+        if (!silent) {
+          this.trigger(AFTER_VALIDATION_EVENT, key);
+        }
+        
         return value;
       }
 
