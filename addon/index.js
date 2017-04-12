@@ -274,9 +274,14 @@ export function changeset(obj, validateFn = defaultValidatorFn, validationMap = 
      * @param  {String|Undefined} key
      * @return {Promise}
      */
-    validate(key) {
+    validate(key, validator) {
+      
       if (keys(validationMap).length === 0) {
         return resolve(null);
+      }
+
+      if (validator) {
+        set(this, VALIDATOR, validator);
       }
 
       if (isNone(key)) {
@@ -428,8 +433,8 @@ export function changeset(obj, validateFn = defaultValidatorFn, validationMap = 
     _validateAndSet(key, value) {
       let content = get(this, CONTENT);
       let oldValue = get(content, key);
-      let validation = this._validate(key, value, oldValue);
       this.trigger(BEFORE_VALIDATION_EVENT, key);
+      let validation = this._validate(key, value, oldValue);
       if (isPromise(validation)) {
         this._setIsValidating(key, true);
         //this.trigger(BEFORE_VALIDATION_EVENT, key);
