@@ -280,20 +280,20 @@ export function changeset(obj, validateFn = defaultValidatorFn, validationMap = 
         return resolve(null);
       }
 
-      if (validator) {
-        set(this, VALIDATOR, validator);
-      }
+      //if (validator) {
+      //  set(this, VALIDATOR, validator);
+      //}
 
       if (isNone(key)) {
         let maybePromise = keys(validationMap)
           .map((validationKey) => {
-            return this._validateAndSet(validationKey, this._valueFor(validationKey));
+            return this._validateAndSet(validationKey, this._valueFor(validationKey), validator);
           });
 
         return all(maybePromise);
       }
 
-      return resolve(this._validateAndSet(key, this._valueFor(key)));
+      return resolve(this._validateAndSet(key, this._valueFor(key)), validator);
     },
 
     
@@ -430,11 +430,13 @@ export function changeset(obj, validateFn = defaultValidatorFn, validationMap = 
      * @param  {Any} value
      * @return {Any}
      */
-    _validateAndSet(key, value) {
+    _validateAndSet(key, value, validator) {
       let content = get(this, CONTENT);
       let oldValue = get(content, key);
       this.trigger(BEFORE_VALIDATION_EVENT, key);
-      let validation = this._validate(key, value, oldValue);
+      
+      let validation = this._validate(key, value, oldValue, validator);
+      
       if (isPromise(validation)) {
         this._setIsValidating(key, true);
         //this.trigger(BEFORE_VALIDATION_EVENT, key);
@@ -459,9 +461,9 @@ export function changeset(obj, validateFn = defaultValidatorFn, validationMap = 
      * @param {Any} oldValue
      * @return {Boolean|String}
      */
-    _validate(key, newValue, oldValue) {
+    _validate(key, newValue, oldValue, validator) {
       let changes = get(this, CHANGES);
-      let validator = get(this, VALIDATOR);
+      let validator = typeof validator === "function"? validator : get(this, VALIDATOR);
       let content = get(this, CONTENT);
 
       if (typeOf(validator) === 'function') {
