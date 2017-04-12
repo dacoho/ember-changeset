@@ -461,9 +461,9 @@ export function changeset(obj, validateFn = defaultValidatorFn, validationMap = 
      * @param {Any} oldValue
      * @return {Boolean|String}
      */
-    _validate(key, newValue, oldValue, validator) {
+    _validate(key, newValue, oldValue, _validator) {
       let changes = get(this, CHANGES);
-      let validator = typeof validator === "function"? validator : get(this, VALIDATOR);
+      let validator = typeof _validator === "function"? _validator : get(this, VALIDATOR);
       let content = get(this, CONTENT);
 
       if (typeOf(validator) === 'function') {
